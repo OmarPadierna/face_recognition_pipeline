@@ -8,7 +8,7 @@ def feature_matcher(feature_matching_args, feature_vector):
     Selects and runs the appropriate feature matching algorithm.
 
     Args:
-        feature_matching_args: Namespace with feature matching flags (euclidean, cosine, svm, knn)
+        feature_matching_args: Namespace with feature matching flags (Euclidean, cosine, svm, knn)
         feature_vector: Feature vectors from feature extraction
 
     Returns:
