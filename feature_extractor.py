@@ -3,25 +3,6 @@ Feature Extraction Module
 Provides feature extraction functionality with multiple algorithm flavors.
 """
 
-
-def feature_extraction_vggface(aligned_faces):
-    """VGGFace feature extraction stub."""
-    print("Running the vggface flavor")
-    return aligned_faces
-
-
-def feature_extraction_facenet(aligned_faces):
-    """FaceNet feature extraction stub."""
-    print("Running the facenet flavor")
-    return aligned_faces
-
-
-def feature_extraction_deepface(aligned_faces):
-    """DeepFace feature extraction stub."""
-    print("Running the deepface flavor")
-    return aligned_faces
-
-
 def feature_extractor(feature_extraction_args, aligned_faces):
     """
     Selects and runs the appropriate feature extraction algorithm.
@@ -39,3 +20,21 @@ def feature_extractor(feature_extraction_args, aligned_faces):
         return feature_extraction_facenet(aligned_faces)
     elif feature_extraction_args.deepface:
         return feature_extraction_deepface(aligned_faces)
+
+
+def feature_extraction_vggface(aligned_faces):
+    """VGGFace feature extraction stub."""
+    print("Running the vggface flavor")
+    return aligned_faces
+
+
+def feature_extraction_facenet(aligned_faces):
+    """FaceNet feature extraction stub."""
+    print("Running the facenet flavor")
+    return aligned_faces
+
+
+def feature_extraction_deepface(aligned_faces):
+    """DeepFace feature extraction stub."""
+    print("Running the deepface flavor")
+    return aligned_faces
