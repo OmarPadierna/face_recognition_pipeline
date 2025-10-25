@@ -6,6 +6,7 @@ with multiple algorithm flavors.
 """
 
 from argparse import ArgumentParser
+from PIL import Image
 from face_detection import face_detector
 from feature_extractor import feature_extractor
 from feature_matcher import feature_matcher
@@ -32,6 +33,21 @@ def run_pipeline(args, image):
 def main():
     parser = ArgumentParser(
         description='Face Detection Pipeline with multiple algorithm flavors'
+    )
+
+    # Input image argument
+    parser.add_argument(
+        '--input',
+        type=str,
+        required=True,
+        help='Path to input image'
+    )
+
+    # Debug flag
+    parser.add_argument(
+        '--debug',
+        action='store_true',
+        help='Enable debug mode with visualization'
     )
 
     # Face Detection arguments
@@ -95,10 +111,9 @@ def main():
 
     args = parser.parse_args()
 
-    # Run the pipeline (with placeholder image for now)
-    image = None  # Placeholder until we add image loading
+    # Load the input image
+    image = Image.open(args.input)
     run_pipeline(args, image)
-
 
 if __name__ == '__main__':
     main()
