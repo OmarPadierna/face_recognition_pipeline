@@ -14,7 +14,7 @@ def face_detector(face_detection_args, image) -> List[torch.Tensor]:
     Selects and runs the appropriate face detection algorithm.
 
     Args:
-        face_detection_args: Namespace with face detection flags (mtcnn, haar, scrfd)
+        face_detection_args: Namespace with face detection flags (mtcnn, haar)
         image: Input image
 
     Returns:
@@ -25,8 +25,6 @@ def face_detector(face_detection_args, image) -> List[torch.Tensor]:
         return face_detection_mtcnn(image, is_debug_enabled)
     elif face_detection_args.haar:
         return face_detection_haar(image)
-    elif face_detection_args.scrfd:
-        return face_detection_scrfd(image)
 
 def face_detection_haar(image: Image.Image) -> List[torch.Tensor]:
     """Haar Cascade face detection stub.
@@ -75,19 +73,5 @@ def face_detection_mtcnn(image: Image.Image, is_debug_enabled:bool) -> List[torc
                 axes[i].set_title(f'Face {i+1}')
 
             fig.show()
-    #TODO: Add missing alignment step. This function will only return the detected faces but I don't know if it will always return them aligned.
+    #Note: MTCNN does face alignment automatically.
     return faces if faces is not None else []
-
-
-
-def face_detection_scrfd(image: Image.Image) -> List[torch.Tensor]:
-    """SCRFD face detection stub.
-
-    Args:
-        image: PIL Image object
-
-    Returns:
-        List of detected face tensors
-    """
-    print("Running the scrfd flavor")
-    return []

@@ -62,16 +62,11 @@ def main():
         action='store_true',
         help='Use Haar Cascade for face detection'
     )
-    face_detection_group.add_argument(
-        '--scrfd',
-        action='store_true',
-        help='Use SCRFD for face detection'
-    )
 
     # Feature Extraction arguments
     feature_extraction_group = parser.add_mutually_exclusive_group(required=True)
     feature_extraction_group.add_argument(
-        '--vggface',
+        '--lbp',
         action='store_true',
         help='Use VGGFace for feature extraction'
     )
@@ -79,11 +74,6 @@ def main():
         '--facenet',
         action='store_true',
         help='Use FaceNet for feature extraction'
-    )
-    feature_extraction_group.add_argument(
-        '--deepface',
-        action='store_true',
-        help='Use DeepFace for feature extraction'
     )
 
     # Feature Matching arguments
@@ -99,14 +89,9 @@ def main():
         help='Use Cosine similarity for feature matching'
     )
     feature_matching_group.add_argument(
-        '--svm',
+        '--chi',
         action='store_true',
         help='Use SVM for feature matching'
-    )
-    feature_matching_group.add_argument(
-        '--knn',
-        action='store_true',
-        help='Use KNN for feature matching'
     )
 
     args = parser.parse_args()
