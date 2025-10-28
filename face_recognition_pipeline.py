@@ -131,20 +131,6 @@ def main():
         help='Path to input image'
     )
 
-    pipeline_args_mtcnn_lbp_chi = Namespace(
-        mtcnn=True,  # Face detection method
-        haar=False,
-
-        lbp=True,  # Feature extraction method
-        facenet=False,
-
-        euclidean=False,  # Feature matching method
-        cosine=False,
-        chi=True,
-
-        threshold=0.5,  # Matching threshold
-        debug=True  # Optional: enable debug visualization
-    )
 
     pipeline_args_mtcnn_lbp_cosine = Namespace(
         mtcnn=True,  # Face detection method
@@ -157,22 +143,7 @@ def main():
         cosine=True,
         chi=False,
 
-        threshold=0.5,  # Matching threshold
-        debug=True  # Optional: enable debug visualization
-    )
-
-    pipeline_args_mtcnn_lbp_euclidean = Namespace(
-        mtcnn=True,  # Face detection method
-        haar=False,
-
-        lbp=True,  # Feature extraction method
-        facenet=False,
-
-        euclidean=True,  # Feature matching method
-        cosine=False,
-        chi=False,
-
-        threshold=50.0,  # Matching threshold
+        threshold=0.2,  # Matching threshold
         debug=True  # Optional: enable debug visualization
     )
 
@@ -182,14 +153,10 @@ def main():
     image_test = Image.open(args.input_test)
 
     mtcnn_lbp_cosine = FaceRecognitionPipeline(pipeline_args_mtcnn_lbp_cosine)
-    mtcnn_lbp_chi = FaceRecognitionPipeline(pipeline_args_mtcnn_lbp_chi)
-    mtcnn_lbp_euclidean = FaceRecognitionPipeline(pipeline_args_mtcnn_lbp_euclidean)
 
     # Database generation only uses mtcnn->lbp (no feature_matching) so its the same for all these three pipelines
     database = mtcnn_lbp_cosine.generate_descriptors(image_train)
 
-    mtcnn_lbp_chi.detect_faces(image_test, database)
-    mtcnn_lbp_euclidean.detect_faces(image_test, database)
     mtcnn_lbp_cosine.detect_faces(image_test, database)
 
 

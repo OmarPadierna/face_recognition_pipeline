@@ -147,7 +147,7 @@ def feature_matching_cosine(database, test_feature_vectors, threshold):
     Returns:
         List of tuples (descriptor, bbox, label) for matched faces only
     """
-    print("Running the cosine flavor (numpy implementation)")
+    print(f"Running the cosine flavor (numpy implementation) with threshold={threshold}")
 
     matched_faces = []
 
