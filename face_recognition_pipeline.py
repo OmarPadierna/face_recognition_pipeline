@@ -6,6 +6,7 @@ with multiple algorithm flavors.
 """
 
 from argparse import ArgumentParser
+from argparse import Namespace
 from PIL import Image
 from face_detection import face_detector
 from feature_extractor import feature_extractor
@@ -30,6 +31,45 @@ def run_pipeline(args, image):
     return labeled_image
 
 
+class FaceRecognitionPipeline:
+    """
+    Face recognition pipeline for generating descriptors and detecting/labeling faces.
+    """
+
+    def __init__(self, args):
+        """
+        Initialize the pipeline with configuration arguments.
+
+        Args:
+            args: Namespace with pipeline configuration flags
+        """
+        self.args = args
+
+    def generate_descriptors(self, image):
+        """
+        Generate face descriptors from an image.
+
+        Args:
+            image: Input image (PIL Image)
+
+        Returns:
+            List of tuples containing (descriptor, label) for each face
+        """
+        pass
+
+    def detect_faces(self, image, descriptors):
+        """
+        Detect faces in an image and label them using the provided descriptors.
+
+        Args:
+            image: Input image (PIL Image)
+            descriptors: List of tuples containing (descriptor, label) from generate_descriptors
+
+        Returns:
+            None (prints/displays the labeled image)
+        """
+        pass
+
 def main():
     parser = ArgumentParser(
         description='Face Detection Pipeline with multiple algorithm flavors'
@@ -37,68 +77,77 @@ def main():
 
     # Input image argument
     parser.add_argument(
-        '--input',
+        '--input_train',
         type=str,
         required=True,
         help='Path to input image'
     )
 
-    # Debug flag
     parser.add_argument(
-        '--debug',
-        action='store_true',
-        help='Enable debug mode with visualization'
+        '--input_test',
+        type=str,
+        required=True,
+        help='Path to input image'
     )
 
-    # Face Detection arguments
-    face_detection_group = parser.add_mutually_exclusive_group(required=True)
-    face_detection_group.add_argument(
-        '--mtcnn',
-        action='store_true',
-        help='Use MTCNN for face detection'
-    )
-    face_detection_group.add_argument(
-        '--haar',
-        action='store_true',
-        help='Use Haar Cascade for face detection'
+    pipeline_args_mtcnn_lbp_chi = Namespace(
+        mtcnn=True,  # Face detection method
+        haar=False,
+
+        lbp=True,  # Feature extraction method
+        facenet=False,
+
+        euclidean=False,  # Feature matching method
+        cosine=False,
+        chi=True,
+
+        debug=True  # Optional: enable debug visualization
     )
 
-    # Feature Extraction arguments
-    feature_extraction_group = parser.add_mutually_exclusive_group(required=True)
-    feature_extraction_group.add_argument(
-        '--lbp',
-        action='store_true',
-        help='Use VGGFace for feature extraction'
-    )
-    feature_extraction_group.add_argument(
-        '--facenet',
-        action='store_true',
-        help='Use FaceNet for feature extraction'
+    pipeline_args_mtcnn_lbp_cosine = Namespace(
+        mtcnn=True,  # Face detection method
+        haar=False,
+
+        lbp=True,  # Feature extraction method
+        facenet=False,
+
+        euclidean=False,  # Feature matching method
+        cosine=True,
+        chi=False,
+
+        debug=True  # Optional: enable debug visualization
     )
 
-    # Feature Matching arguments
-    feature_matching_group = parser.add_mutually_exclusive_group(required=True)
-    feature_matching_group.add_argument(
-        '--euclidean',
-        action='store_true',
-        help='Use Euclidean distance for feature matching'
-    )
-    feature_matching_group.add_argument(
-        '--cosine',
-        action='store_true',
-        help='Use Cosine similarity for feature matching'
-    )
-    feature_matching_group.add_argument(
-        '--chi',
-        action='store_true',
-        help='Use SVM for feature matching'
+    pipeline_args_mtcnn_lbp_euclidean = Namespace(
+        mtcnn=True,  # Face detection method
+        haar=False,
+
+        lbp=True,  # Feature extraction method
+        facenet=False,
+
+        euclidean=True,  # Feature matching method
+        cosine=False,
+        chi=False,
+
+        debug=True  # Optional: enable debug visualization
     )
 
     args = parser.parse_args()
 
-    # Load the input image
-    image = Image.open(args.input)
-    run_pipeline(args, image)
+    image_train = Image.open(args.input_train)
+    image_test = Image.open(args.input_test)
+
+
+    mtcnn_lbp_cosine = FaceRecognitionPipeline(pipeline_args_mtcnn_lbp_cosine)
+    mtcnn_lbp_chi = FaceRecognitionPipeline(pipeline_args_mtcnn_lbp_chi)
+    mtcnn_lbp_euclidean = FaceRecognitionPipeline(pipeline_args_mtcnn_lbp_euclidean)
+
+    #Database generation only uses mtcnn->lbp (no feature_matching) so its the same for all these three pipelines
+    database = mtcnn_lbp_cosine.generate_descriptors(image_train)
+
+    mtcnn_lbp_chi.detect_faces(image_test, database)
+    mtcnn_lbp_euclidean.detect_faces(image_test, database)
+    mtcnn_lbp_cosine.detect_faces(image_test, database)
 
 if __name__ == '__main__':
     main()
