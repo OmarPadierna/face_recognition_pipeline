@@ -7,20 +7,20 @@ import torch
 import numpy as np
 
 
-def feature_extractor(feature_extraction_args, aligned_faces: List[torch.Tensor]):
+def feature_extractor(feature_extraction_args, aligned_faces: List[tuple]):
     """
     Extracts LBP features from aligned face tensors.
 
     Args:
         feature_extraction_args: Namespace with feature extraction flags (lbp, facenet)
-        aligned_faces: List of aligned face tensors from face detection
+        aligned_faces: List of tuples (face_tensor, bounding_box) from face detection
 
     Returns:
-        List of LBP feature vectors (histograms)
+        List of tuples (descriptor, bounding_box)
     """
     descriptors = []
 
-    for face_tensor in aligned_faces:
+    for face_tensor, bbox in aligned_faces:
         # Convert tensor to grayscale numpy array
         face_np = face_tensor.permute(1, 2, 0).cpu().numpy().astype(np.uint8)
 
@@ -34,10 +34,10 @@ def feature_extractor(feature_extraction_args, aligned_faces: List[torch.Tensor]
         if feature_extraction_args.lbp:
             # Compute uniform LBP descriptor
             lbp_descriptor = compute_lbp_descriptor(gray, grid_x=8, grid_y=8, radius=1)
-            descriptors.append(lbp_descriptor)
+            descriptors.append((lbp_descriptor, bbox))
         elif feature_extraction_args.facenet:
             facenet_descriptor = feature_extraction_facenet(gray)
-            descriptors.append(facenet_descriptor)
+            descriptors.append((facenet_descriptor, bbox))
 
     return descriptors
 
@@ -115,7 +115,7 @@ def compute_uniform_lbp(image: np.ndarray, radius: int, n_points: int):
     angles = 2 * np.pi * np.arange(n_points) / n_points
     sample_points = np.array([
         -radius * np.sin(angles),  # y coordinates
-        radius * np.cos(angles)    # x coordinates
+        radius * np.cos(angles)  # x coordinates
     ])
 
     # Process each pixel
@@ -155,10 +155,18 @@ def bilinear_interpolate(image: np.ndarray, x: float, y: float) -> float:
     Returns:
         Interpolated pixel value
     """
+    height, width = image.shape
+
     x0 = int(np.floor(x))
     x1 = x0 + 1
     y0 = int(np.floor(y))
     y1 = y0 + 1
+
+    # Clamp coordinates to image boundaries
+    x0 = max(0, min(x0, width - 1))
+    x1 = max(0, min(x1, width - 1))
+    y0 = max(0, min(y0, height - 1))
+    y1 = max(0, min(y1, height - 1))
 
     # Get the four surrounding pixels
     Ia = image[y0, x0]
@@ -214,9 +222,8 @@ def get_uniform_pattern_mapping(n_points: int) -> np.ndarray:
     return mapping
 
 
-
 def feature_extraction_facenet(aligned_faces):
     """FaceNet feature extraction stub."""
-    #TODO: Add face_recognition implementation here. see: https://pypi.org/project/face-recognition/
+    # TODO: Add face_recognition implementation here. see: https://pypi.org/project/face-recognition/
     print("Running the facenet flavor")
     return aligned_faces

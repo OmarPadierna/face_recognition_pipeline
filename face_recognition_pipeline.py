@@ -55,7 +55,16 @@ class FaceRecognitionPipeline:
         Returns:
             List of tuples containing (descriptor, label) for each face
         """
-        pass
+        aligned_faces = face_detector(self.args, image)
+        feature_vectors = feature_extractor(self.args, aligned_faces)
+
+        # Generate database: list of tuples (descriptor, label)
+        database = []
+        for idx, (descriptor, bbox) in enumerate(feature_vectors, start=1):
+            label = f"target {idx}"
+            database.append((descriptor, label))
+
+        return database
 
     def detect_faces(self, image, descriptors):
         """
@@ -66,9 +75,41 @@ class FaceRecognitionPipeline:
             descriptors: List of tuples containing (descriptor, label) from generate_descriptors
 
         Returns:
-            None (prints/displays the labeled image)
+            None (displays the labeled image)
         """
-        pass
+        import matplotlib.pyplot as plt
+        import matplotlib.patches as patches
+
+        aligned_faces = face_detector(self.args, image)
+        feature_vectors = feature_extractor(self.args, aligned_faces)
+        matched_faces = feature_matcher(self.args, descriptors, feature_vectors)
+
+        # Display the image with bounding boxes and labels
+        fig, ax = plt.subplots(1, figsize=(12, 8))
+        ax.imshow(image)
+        ax.axis('off')
+
+        # Draw bounding boxes and labels for matched faces
+        for descriptor, bbox, label in matched_faces:
+            x1, y1, x2, y2 = bbox
+            width = x2 - x1
+            height = y2 - y1
+
+            # Draw rectangle
+            rect = patches.Rectangle((x1, y1), width, height,
+                                     linewidth=2, edgecolor='green', facecolor='none')
+            ax.add_patch(rect)
+
+            # Add label
+            ax.text(x1, y1 - 10, label,
+                    bbox=dict(boxstyle='round,pad=0.5', facecolor='green', alpha=0.7),
+                    fontsize=12, color='white', weight='bold')
+
+        plt.tight_layout()
+        plt.show()
+
+        print(f"Detected and labeled {len(matched_faces)} faces")
+
 
 def main():
     parser = ArgumentParser(
@@ -101,6 +142,7 @@ def main():
         cosine=False,
         chi=True,
 
+        threshold=0.5,  # Matching threshold
         debug=True  # Optional: enable debug visualization
     )
 
@@ -115,6 +157,7 @@ def main():
         cosine=True,
         chi=False,
 
+        threshold=0.5,  # Matching threshold
         debug=True  # Optional: enable debug visualization
     )
 
@@ -129,6 +172,7 @@ def main():
         cosine=False,
         chi=False,
 
+        threshold=50.0,  # Matching threshold
         debug=True  # Optional: enable debug visualization
     )
 
@@ -137,17 +181,17 @@ def main():
     image_train = Image.open(args.input_train)
     image_test = Image.open(args.input_test)
 
-
     mtcnn_lbp_cosine = FaceRecognitionPipeline(pipeline_args_mtcnn_lbp_cosine)
     mtcnn_lbp_chi = FaceRecognitionPipeline(pipeline_args_mtcnn_lbp_chi)
     mtcnn_lbp_euclidean = FaceRecognitionPipeline(pipeline_args_mtcnn_lbp_euclidean)
 
-    #Database generation only uses mtcnn->lbp (no feature_matching) so its the same for all these three pipelines
+    # Database generation only uses mtcnn->lbp (no feature_matching) so its the same for all these three pipelines
     database = mtcnn_lbp_cosine.generate_descriptors(image_train)
 
     mtcnn_lbp_chi.detect_faces(image_test, database)
     mtcnn_lbp_euclidean.detect_faces(image_test, database)
     mtcnn_lbp_cosine.detect_faces(image_test, database)
+
 
 if __name__ == '__main__':
     main()
