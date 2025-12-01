@@ -244,7 +244,7 @@ def get_uniform_pattern_mapping(n_points: int) -> np.ndarray:
 
 """
 def feature_extraction_facenet(aligned_faces):
-    """FaceNet feature extraction stub."""
+    #FaceNet feature extraction stub.
     # TODO: Add face_recognition implementation here. see: https://pypi.org/project/face-recognition/
     print("Running the facenet flavor")
     return aligned_faces
