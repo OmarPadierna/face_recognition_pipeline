@@ -5,6 +5,26 @@ Provides feature extraction functionality with multiple algorithm flavors.
 from typing import List
 import torch
 import numpy as np
+from facenet_pytorch import InceptionResnetV1  # <-- NEW
+
+# --- Facenet model setup ---
+#This chooses where the model + tensors will live:
+#True if there’s a GPU available (e.g. in Colab with GPU runtime).
+_device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+_facenet_model = None
+
+def get_facenet_model():
+    """
+    load a pretrained Facenet (InceptionResnetV1) model.
+    """
+    global _facenet_model
+    #Checks whether we’ve already loaded the model or not.
+    if _facenet_model is None:
+        #creates the Facenet model and loads pretrained weights (trained on VGGFace2)
+        #puts the model in evaluation mode and moves it to the appropriate device (CPU or GPU).
+        #Then it stores that model instance in the global _facenet_model.
+        _facenet_model = InceptionResnetV1(pretrained="vggface2").eval().to(_device)
+    return _facenet_model
 
 
 def feature_extractor(feature_extraction_args, aligned_faces: List[tuple]):
@@ -36,7 +56,8 @@ def feature_extractor(feature_extraction_args, aligned_faces: List[tuple]):
             lbp_descriptor = compute_lbp_descriptor(gray, grid_x=8, grid_y=8, radius=1)
             descriptors.append((lbp_descriptor, bbox))
         elif feature_extraction_args.facenet:
-            facenet_descriptor = feature_extraction_facenet(gray)
+            
+            facenet_descriptor = feature_extraction_facenet(face_tensor)
             descriptors.append((facenet_descriptor, bbox))
 
     return descriptors
@@ -221,9 +242,48 @@ def get_uniform_pattern_mapping(n_points: int) -> np.ndarray:
 
     return mapping
 
-
+"""
 def feature_extraction_facenet(aligned_faces):
     """FaceNet feature extraction stub."""
     # TODO: Add face_recognition implementation here. see: https://pypi.org/project/face-recognition/
     print("Running the facenet flavor")
     return aligned_faces
+"""
+def feature_extraction_facenet(face_tensor: torch.Tensor) -> np.ndarray:
+    """
+    Extract a Facenet embedding for a single aligned face.
+
+    Args:
+        face_tensor: Torch tensor of shape (C, H, W), RGB.
+                     Typically in [0, 255] uint8 or [0, 1] float.
+
+    Returns:
+        1D numpy array of length 512 (Facenet embedding).
+    """
+    model = get_facenet_model()
+
+    # Ensure float in [0, 1]
+    x = face_tensor
+    if x.dtype != torch.float32:
+        x = x.float()
+    # If values look like 0..255, scale to 0..1
+    if x.max() > 1.5:
+        x = x / 255.0
+
+    # Add batch dimension: (C,H,W) -> (1,C,H,W)
+    x = x.unsqueeze(0)
+
+    # Resize to 160x160 as expected by Facenet
+    x = torch.nn.functional.interpolate(
+        x, size=(160, 160), mode="bilinear", align_corners=False
+    )
+
+    # Normalize to [-1, 1]
+    x = (x - 0.5) / 0.5
+
+    x = x.to(_device)
+
+    with torch.no_grad():
+        emb = model(x)  # shape: (1, 512)
+
+    return emb.squeeze(0).cpu().numpy()
