@@ -8,9 +8,9 @@ from face_detection import face_detector
 from argparse import Namespace
 
 face_detection_args = Namespace(
-	mtcnn=False,
+	mtcnn=True,
 	haar=False,
-	retina=True,
+	retina=False,
 	debug=False,
 )
 

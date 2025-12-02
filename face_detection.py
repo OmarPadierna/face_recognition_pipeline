@@ -5,8 +5,8 @@ Provides face detection functionality with multiple algorithm flavors.
 
 from typing import List
 import torch
-from facenet_pytorch import MTCNN
-from insightface.app import FaceAnalysis
+# from facenet_pytorch import MTCNN
+# from insightface.app import FaceAnalysis
 from PIL import Image
 from matplotlib import pyplot as plt
 import cv2
@@ -68,67 +68,102 @@ def face_detection_haar(image: Image.Image) -> List[tuple]:
     return results
 
 
-# Modify here to include bounding boxes. Output should be a list of tuples. Tensor + bounding box. This way they can be used for labeling.
-def face_detection_mtcnn(image: Image.Image, is_debug_enabled: bool) -> List[tuple]:
-    """MTCNN face detection implementation.
+from typing import List, Tuple
+from PIL import Image
+import numpy as np
+import torch
+from mtcnn import MTCNN
+from matplotlib import pyplot as plt
+
+
+def face_detection_mtcnn(image: Image.Image, is_debug_enabled: bool) -> List[Tuple[torch.Tensor, list]]:
+    """MTCNN face detection implementation (using `mtcnn` package).
 
     Args:
         image: PIL Image object
-        is_debug_enabled: A flag that enables/disabled visualization and logs for debugging purposes
-    Returns:
-        List of tuples (face_tensor, bounding_box) where bounding_box is [x1, y1, x2, y2]
-    """
-    mtcnn = MTCNN(margin=20, keep_all=True, post_process=False, device='cpu')
+        is_debug_enabled: Enables/disables visualization and logs for debugging purposes
 
-    # Display original image
+    Returns:
+        List of tuples (face_tensor, bounding_box)
+        where:
+          - face_tensor is a CHW PyTorch tensor
+          - bounding_box is [x1, y1, x2, y2]
+    """
+    # Create detector (CPU in this example; use "GPU:0" if you have TF+GPU set up)
+    detector = MTCNN(device="CPU:0")
+
+    # Convert PIL image to numpy array (H, W, C)
+    image_np = np.array(image)
+
+    # Display original image (as before)
     plt.figure(figsize=(12, 8))
-    plt.imshow(image)
+    plt.imshow(image_np)
     plt.axis('off')
 
-    # Detect faces and get bounding boxes
-    # First call to get boxes and probs
-    boxes, probs = mtcnn.detect(image)
+    # Detect faces: use xyxy to match your [x1, y1, x2, y2] expectation
+    detections = detector.detect_faces(image_np, box_format="xyxy")
 
-    # Second call to get aligned face tensors
-    faces = mtcnn(image)
+    face_tensors: List[torch.Tensor] = []
+    bboxes: List[list] = []
 
-    if is_debug_enabled:
-        # Visualize detected faces
-        if faces is not None and len(faces) > 0:
-            num_faces = len(faces)
-            fig, axes = plt.subplots(1, num_faces, figsize=(4 * num_faces, 4))
+    for det in detections:
+        # det["box"] is [x1, y1, x2, y2] thanks to box_format="xyxy"
+        x1, y1, x2, y2 = det["box"]
+        x1, y1, x2, y2 = map(int, [x1, y1, x2, y2])
 
-            # Handle single face case (axes won't be an array)
-            if num_faces == 1:
-                axes = [axes]
+        # Safety clamp just in case
+        h, w = image_np.shape[:2]
+        x1 = max(0, min(x1, w - 1))
+        x2 = max(0, min(x2, w))
+        y1 = max(0, min(y1, h - 1))
+        y2 = max(0, min(y2, h))
 
-            for i, face in enumerate(faces):
-                axes[i].imshow(face.permute(1, 2, 0).int().numpy())
-                axes[i].axis('off')
-                axes[i].set_title(f'Face {i + 1}')
+        if x2 <= x1 or y2 <= y1:
+            continue  # skip degenerate boxes
 
-            fig.show()
-    # Note: MTCNN does face alignment automatically.
-    if faces is not None and boxes is not None:
-        # Return list of tuples: (face_tensor, bounding_box)
-        return [(faces[i], boxes[i].tolist()) for i in range(len(faces))]
-    else:
-        return []
+        # Crop the face from the numpy image (HWC)
+        face_crop = image_np[y1:y2, x1:x2, :]
 
-
-
-app = FaceAnalysis(name="buffalo_l")
-app.prepare(ctx_id=-1) # -1 for CPU
-
-def face_detection_retina(image: Image.Image):
-    img_np = np.array(image.convert("RGB"))
-    faces = app.get(img_np)
-
-    results = []
-    for f in faces:
-        x1, y1, x2, y2 = f.bbox.astype(int).tolist()
-        face_crop = img_np[y1:y2, x1:x2]
+        # Convert to CHW tensor (float)
         face_tensor = torch.from_numpy(face_crop).permute(2, 0, 1).float()
-        box = [float(x1), float(y1), float(x2), float(y2)]
-        results.append((face_tensor, box))
-    return results
+
+        face_tensors.append(face_tensor)
+        bboxes.append([float(x1), float(y1), float(x2), float(y2)])
+
+    if is_debug_enabled and len(face_tensors) > 0:
+        num_faces = len(face_tensors)
+        fig, axes = plt.subplots(1, num_faces, figsize=(4 * num_faces, 4))
+
+        # Handle single-face case
+        if num_faces == 1:
+            axes = [axes]
+
+        for i, face in enumerate(face_tensors):
+            # Convert back to HWC uint8 for plotting
+            axes[i].imshow(face.permute(1, 2, 0).byte().numpy())
+            axes[i].axis('off')
+            axes[i].set_title(f'Face {i + 1}')
+
+        fig.show()
+
+    # Return list of (face_tensor, bounding_box)
+    return list(zip(face_tensors, bboxes))
+
+
+
+
+# app = FaceAnalysis(name="buffalo_l")
+# app.prepare(ctx_id=-1) # -1 for CPU
+
+# def face_detection_retina(image: Image.Image):
+#     img_np = np.array(image.convert("RGB"))
+#     faces = app.get(img_np)
+
+#     results = []
+#     for f in faces:
+#         x1, y1, x2, y2 = f.bbox.astype(int).tolist()
+#         face_crop = img_np[y1:y2, x1:x2]
+#         face_tensor = torch.from_numpy(face_crop).permute(2, 0, 1).float()
+#         box = [float(x1), float(y1), float(x2), float(y2)]
+#         results.append((face_tensor, box))
+#     return results
